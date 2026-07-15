@@ -1,0 +1,55 @@
+name: Renovate
+
+# Self-hosted Renovate: bumps the upstream AirTrail version pinned in package.nix,
+# then runs ci/renovate-update.sh (postUpgradeTask) to recompute the Nix hashes
+# (src + the two bun-install FODs) so the PR is build-ready — something the
+# Mend-hosted app cannot do (no Nix). Review + merge manually; no auto-merge.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "31 6 * * 1" # weekly, Monday ~06:31 UTC
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # Dependency Dashboard (:dependencyDashboard) is created as an issue
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Install hash tools (nurl)
+        run: nix profile install nixpkgs#nurl
+
+      - name: Run Renovate
+        env:
+          RENOVATE_TOKEN: ${{ github.token }}
+          RENOVATE_REPOSITORIES: nSimonFR/airtrail-nix
+          RENOVATE_PLATFORM: github
+          # postUpgradeTasks run arbitrary commands, so the runner (not repo
+          # config) must allow-list them — a repo cannot self-grant execution.
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^bash ci/renovate-update\\.sh "]'
+          LOG_LEVEL: info
+        run: npx --yes renovate
+
+      - name: Notify Telegram on open Renovate PRs
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          [ -z "${TELEGRAM_BOT_TOKEN:-}" ] && { echo "no TELEGRAM_BOT_TOKEN secret; skipping"; exit 0; }
+          prs=$(gh pr list --repo nSimonFR/airtrail-nix --state open \
+                  --json title,url,headRefName \
+                  --jq '.[] | select(.headRefName|startswith("renovate/")) | "• \(.title)\n\(.url)"' 2>/dev/null || true)
+          [ -z "$prs" ] && { echo "no open renovate PRs; skipping"; exit 0; }
+          msg="Renovate — airtrail-nix"$'\n'"$prs"
+          curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id=82389391 \
+            --data-urlencode "text=${msg}" >/dev/null || true

@@ -162,6 +162,10 @@ stdenv.mkDerivation {
   # No ELF to fix up in the app tree; argon2's prebuilt .node loads as-is.
   dontStrip = true;
 
+  # Expose the two bun-install FODs so CI (ci/renovate-update.sh) can build each
+  # in isolation to recompute its outputHash after a version/bun.lock bump.
+  passthru = { inherit depsBuild depsProd; };
+
   meta = with lib; {
     description = "AirTrail — self-hosted personal flight tracker (johanohly/AirTrail)";
     homepage = "https://github.com/johanohly/AirTrail";
