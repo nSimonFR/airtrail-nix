@@ -13,6 +13,14 @@
 # node_modules are materialised by two fixed-output derivations that run
 # `bun install` (network is allowed in FODs). To refresh a hash after bumping
 # the version or bun.lock: set it to lib.fakeHash, build, copy the "got:" hash.
+#
+# Those hashes are PER-SYSTEM. `bun install` resolves the optional deps that
+# match the host (lightningcss-linux-{arm64,x64}-gnu, @rollup/rollup-linux-*,
+# @swc/core-linux-*, …), so the recursive hash of the tree differs between
+# aarch64 and x86_64. A hash recomputed on one arch can never validate on the
+# other — hence `depsHashes` below, one entry per supported system, and the
+# .github/workflows/renovate-hashes-arm.yml leg that fills the aarch64 slot on a
+# native arm64 runner after Renovate's x86_64 run has filled its own.
 {
   lib,
   stdenv,
@@ -51,6 +59,25 @@ let
     export CI=1
   '';
 
+  # One entry per system in meta.platforms. Keys match the FOD attribute names
+  # so ci/renovate-update.sh can target `<system>.<attr>` unambiguously.
+  depsHashes = {
+    aarch64-linux = {
+      depsBuild = "sha256-WpYTcWvMmi9nDqYIglsq3+2F8rOsracJv1BygeUk4kI=";
+      depsProd = "sha256-XR0TF3SjDKznIY5efa0swVqunwUPqWyiegjN0+71qM4=";
+    };
+    x86_64-linux = {
+      depsBuild = "sha256-P4XqMy9PVTGR1IMGZLbMA9tgBI0oHllYg1Irm7T3Wmk=";
+      depsProd = "sha256-GYBpIuH5mv65cmRMxsqLFyP7jF3GL0GqPmwKpml6hN0=";
+    };
+  };
+
+  inherit (stdenv.hostPlatform) system;
+
+  hashes = depsHashes.${system} or (throw
+    "airtrail: no bun dependency hashes recorded for ${system}. "
+    + "Run `bash ci/renovate-update.sh` on that platform and commit the result.");
+
   mkBunModules = { name, args, outputHash }:
     stdenvNoCC.mkDerivation {
       inherit src;
@@ -81,7 +108,7 @@ let
   depsBuild = mkBunModules {
     name = "deps-build";
     args = "";
-    outputHash = "sha256-P4XqMy9PVTGR1IMGZLbMA9tgBI0oHllYg1Irm7T3Wmk=";
+    outputHash = hashes.depsBuild;
   };
 
   # Production-only tree shipped at runtime (pg, geo-tz, memoize, @node-rs/argon2
@@ -90,7 +117,7 @@ let
   depsProd = mkBunModules {
     name = "deps-prod";
     args = "--production";
-    outputHash = "sha256-GYBpIuH5mv65cmRMxsqLFyP7jF3GL0GqPmwKpml6hN0=";
+    outputHash = hashes.depsProd;
   };
 
 in
