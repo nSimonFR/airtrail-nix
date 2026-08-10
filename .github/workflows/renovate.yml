@@ -4,6 +4,11 @@ name: Renovate
 # then runs ci/renovate-update.sh (postUpgradeTask) to recompute the Nix hashes
 # (src + the two bun-install FODs) so the PR is build-ready — something the
 # Mend-hosted app cannot do (no Nix). Review + merge manually; no auto-merge.
+#
+# This runner is x86_64, so it can only fill the x86_64-linux slot of package.nix's
+# depsHashes — the bun FOD hashes are arch-specific. renovate-hashes-arm.yml picks
+# the branch up afterwards on a native arm64 runner and fills aarch64-linux, which
+# is the platform the rpi5 consumer actually builds.
 
 on:
   workflow_dispatch:

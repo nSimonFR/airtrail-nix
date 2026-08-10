@@ -1,0 +1,57 @@
+name: Renovate aarch64 hashes
+
+# Second leg of the hash recompute. renovate.yml runs on ubuntu-latest (x86_64)
+# and can therefore only fill the x86_64-linux slot of package.nix's depsHashes:
+# `bun install` resolves arch-specific optional deps, so the FOD hashes differ
+# per system and an x86_64 hash never validates on aarch64 (which is what the
+# rpi5 consumer actually builds).
+#
+# This job re-runs ci/renovate-update.sh on a native arm64 runner (free for
+# public repos) and pushes the aarch64-linux slot onto the same Renovate branch,
+# so the PR is build-ready on BOTH platforms before it is merged.
+#
+# Pushes made with GITHUB_TOKEN do not trigger further workflow runs, so this
+# amending push cannot re-trigger this workflow.
+
+on:
+  push:
+    branches: ["renovate/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  # One run per branch; a newer Renovate push supersedes an in-flight recompute.
+  group: renovate-hashes-arm-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aarch64-hashes:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Recompute the aarch64-linux bun FOD hashes
+        env:
+          # The x86_64 leg already wrote the (system-independent) src hash, so
+          # this run needs neither nurl nor the upstream tarball fetch.
+          SKIP_SRC_HASH: "1"
+        run: bash ci/renovate-update.sh
+
+      - name: Commit and push if the aarch64 slot changed
+        run: |
+          if git diff --quiet -- package.nix; then
+            echo "aarch64-linux hashes already correct; nothing to push"
+            exit 0
+          fi
+          git config user.name  "nSimonFR-ai"
+          git config user.email "265587706+nSimonFR-ai@users.noreply.github.com"
+          git add package.nix
+          git commit -m "chore(deps): recompute aarch64-linux bun deps hashes"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
