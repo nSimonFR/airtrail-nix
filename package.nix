@@ -31,13 +31,13 @@
 
 let
   pname = "airtrail";
-  version = "3.11.1";
+  version = "3.12.0";
 
   src = fetchFromGitHub {
     owner = "johanohly";
     repo = "AirTrail";
     rev = "v${version}";
-    hash = "sha256-kk3mkMWioHNN4Rqz/nlXRZOZZqNRUJuQR57pSzJ2Sd8=";
+    hash = "sha256-3lgUV9j4eELSI1uNqE86I015YHqwtYg1FSMFQJXNg28=";
   };
 
   # Shared env for the two bun-install FODs. Skip browser/binary downloads that
@@ -81,7 +81,7 @@ let
   depsBuild = mkBunModules {
     name = "deps-build";
     args = "";
-    outputHash = "sha256-+ZvKDQjM0PHazLJSEdjalGIwOYXHnCLFgAnEG8a+E8k=";
+    outputHash = "sha256-P4XqMy9PVTGR1IMGZLbMA9tgBI0oHllYg1Irm7T3Wmk=";
   };
 
   # Production-only tree shipped at runtime (pg, geo-tz, memoize, @node-rs/argon2
@@ -90,7 +90,7 @@ let
   depsProd = mkBunModules {
     name = "deps-prod";
     args = "--production";
-    outputHash = "sha256-XR0TF3SjDKznIY5efa0swVqunwUPqWyiegjN0+71qM4=";
+    outputHash = "sha256-GYBpIuH5mv65cmRMxsqLFyP7jF3GL0GqPmwKpml6hN0=";
   };
 
 in
