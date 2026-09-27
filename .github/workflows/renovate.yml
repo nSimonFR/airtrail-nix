@@ -19,6 +19,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write # Dependency Dashboard (:dependencyDashboard) is created as an issue
+  actions: write # dispatch renovate-hashes-arm.yml below
 
 jobs:
   renovate:
@@ -42,6 +43,20 @@ jobs:
           RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^bash ci/renovate-update\\.sh "]'
           LOG_LEVEL: info
         run: npx --yes renovate
+
+      # Renovate pushes with GITHUB_TOKEN, which never fires the arm leg's `push`
+      # trigger; a workflow_dispatch from the same token does. The leg is a no-op
+      # when the aarch64 slot is already correct.
+      - name: Dispatch the aarch64 hash recompute on Renovate branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --paginate \
+            --jq '.[].name | select(startswith("renovate/"))' |
+          while read -r b; do
+            echo "dispatching renovate-hashes-arm.yml on $b"
+            gh workflow run renovate-hashes-arm.yml --repo "$GITHUB_REPOSITORY" --ref "$b"
+          done
 
       - name: Notify Telegram on open Renovate PRs
         if: always()
