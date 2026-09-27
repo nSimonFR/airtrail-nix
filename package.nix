@@ -39,13 +39,13 @@
 
 let
   pname = "airtrail";
-  version = "3.12.0";
+  version = "3.13.0";
 
   src = fetchFromGitHub {
     owner = "johanohly";
     repo = "AirTrail";
     rev = "v${version}";
-    hash = "sha256-3lgUV9j4eELSI1uNqE86I015YHqwtYg1FSMFQJXNg28=";
+    hash = "sha256-PfJ775FqZ8Kkrb8ajl6LDdCBwg25uffYaaT7Hv/Ltbw=";
   };
 
   # Shared env for the two bun-install FODs. Skip browser/binary downloads that
@@ -67,8 +67,8 @@ let
       depsProd = "sha256-XR0TF3SjDKznIY5efa0swVqunwUPqWyiegjN0+71qM4=";
     };
     x86_64-linux = {
-      depsBuild = "sha256-P4XqMy9PVTGR1IMGZLbMA9tgBI0oHllYg1Irm7T3Wmk=";
-      depsProd = "sha256-GYBpIuH5mv65cmRMxsqLFyP7jF3GL0GqPmwKpml6hN0=";
+      depsBuild = "sha256-RzzTtdYEKfsGIRPtP3TAoV/xX0am2fT6gStYfbGeh4Q=";
+      depsProd = "sha256-LQBOyhrXVcgPszKROljDUJzzRihJAH5NHTZAlJkRaSM=";
     };
   };
 
