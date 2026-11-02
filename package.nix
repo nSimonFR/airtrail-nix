@@ -63,8 +63,8 @@ let
   # so ci/renovate-update.sh can target `<system>.<attr>` unambiguously.
   depsHashes = {
     aarch64-linux = {
-      depsBuild = "sha256-sEkmxMfipVU4cvl8fr6LEL7ptUAVeM1IL3ghERDrspw=";
-      depsProd = "sha256-tcIhqznUsUYD4zp7JuYTOYYrxe5Kh6+VpaI0bpB09SE=";
+      depsBuild = "sha256-ymhTcONys+c6nlY0Xh2yxcq4Pt1fnFGOq9nMxKQYNz4=";
+      depsProd = "sha256-F8onYxUWmubsk0H0LfLoMNtxuG6+PWwZV2x/7PlY2bA=";
     };
     x86_64-linux = {
       depsBuild = "sha256-DlJgrNDse/qjZfW1rvLMxSGZDS6FLI5AyaaYn3mh4ks=";
