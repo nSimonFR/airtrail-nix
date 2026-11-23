@@ -19,7 +19,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write # Dependency Dashboard (:dependencyDashboard) is created as an issue
-  actions: write # dispatch renovate-hashes-arm.yml below
+  actions: write # dispatch renovate-hashes-arm.yml below; keepalive (last step)
 
 jobs:
   renovate:
@@ -58,18 +58,11 @@ jobs:
             gh workflow run renovate-hashes-arm.yml --repo "$GITHUB_REPOSITORY" --ref "$b"
           done
 
-      - name: Notify Telegram on open Renovate PRs
+      - name: Keep the schedule alive
+        # GitHub turns scheduled workflows off after 60 days without a commit
+        # (ryot-nix and beaverhabits-nix went dark that way in 2026-10).
+        # Re-enabling through the API resets that timer, with no dummy commit.
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        run: |
-          [ -z "${TELEGRAM_BOT_TOKEN:-}" ] && { echo "no TELEGRAM_BOT_TOKEN secret; skipping"; exit 0; }
-          prs=$(gh pr list --repo nSimonFR/airtrail-nix --state open \
-                  --json title,url,headRefName \
-                  --jq '.[] | select(.headRefName|startswith("renovate/")) | "• \(.title)\n\(.url)"' 2>/dev/null || true)
-          [ -z "$prs" ] && { echo "no open renovate PRs; skipping"; exit 0; }
-          msg="Renovate — airtrail-nix"$'\n'"$prs"
-          curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id=82389391 \
-            --data-urlencode "text=${msg}" >/dev/null || true
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/renovate.yml/enable"
